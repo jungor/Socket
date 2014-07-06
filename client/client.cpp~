@@ -1,0 +1,54 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<errno.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include<unistd.h>
+#include<netdb.h>
+#include<arpa/inet.h>
+#define MAXSIZE 4096
+#define MYPORT 6666
+int main(int argc, char** argv) {
+    AgendaUI aui;
+    int sockfd, n;
+    char recvline[MAXSIZE], sendline[MAXSIZE];
+    sockaddr_in servaddr;
+    hostent *host;
+    if (argc != 2){
+        printf("usage: ./client <ipaddress>\n");
+        exit(1);
+    }
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("create socket error: %s(errno: %d)\n", strerror(errno),errno);
+        exit(1);
+    }
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(MYPORT);
+    if (inet_pton(AF_INET, argv[1], &servaddr.sin_addr) <= 0) {
+        printf("inet_pton error for %s\n",argv[1]);
+        exit(1);
+    }
+    if (connect(sockfd, (sockaddr *)&servaddr, sizeof(servaddr)) < 0){
+        printf("connect error: %s(errno: %d)\n",strerror(errno),errno);
+        exit(1);
+    }
+    aui.OPratorLoop;
+    while (1) {
+        if ((n = recv(sockfd, recvline, MAXSIZE, 0)) == -1) {
+            perror("recv error!");
+            exit(1);
+        } else {
+            recvline[n] = '\0';
+            printf("Received from server:\n  %s", recvline);
+        }
+        printf("Send to server:\n  ");
+        scanf("%s", sendline);
+        write(sockfd, sendline, sizeof(sendline));      
+    }
+    close(sockfd);
+    exit(0);
+}
+

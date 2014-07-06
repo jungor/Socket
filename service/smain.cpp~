@@ -1,0 +1,150 @@
+#include"AgendaService.h"
+AgendaService asv;
+int listenfd, connfd;
+sockaddr_in servaddr;
+sockaddr_in clieaddr;
+char buff[MAXSIZE];
+int n;
+
+int main() {
+    if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        printf("create socket error: %s(errno: %d)\n", strerror(errno), errno);
+    } else {
+        printf("create socket OK!\n");
+    }
+    memset(&servaddr, 0, sizeof (servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(MYPORT);
+    if (bind(listenfd, (sockaddr*) & servaddr, sizeof (servaddr)) == -1) {
+        printf("bind socket error: %s(errno: %d)\n", strerror(errno), errno);
+    } else {
+        printf("bind socket OK!\n");
+    }
+    connfd = 0;
+    if (listen(listenfd, 10) == -1) {
+        printf("listen socket error: %s(errno: %d)\n", strerror(errno), errno);
+        // throw std::exception(“在构造函数中抛出一个异常，测试！”);
+    } else {
+        printf("listen socket OK!\n");
+        printf("======waiting for client's request======\n");
+    }
+    while (connfd == 0) {
+        if ((connfd = accept(listenfd, (sockaddr*) NULL, NULL)) == -1) {
+            printf("accept socket error: %s(errno: %d)", strerror(errno), errno);
+            return -1;
+        } else {
+            printf("accept socket ok!\n");
+        }
+    }
+    std::string op;
+    while (1) {
+        n = read(connfd, buff, MAXSIZE);
+        if (n > 0) {
+            buff[n] = '\0';
+            printf("read operation %s\n", buff);
+            op = buff;
+            if (op == "l") {
+                std::string name, psw;
+                int rval = read(connfd, buff, MAXSIZE);
+                if (rval > 0) {
+                    buff[rval] = '\0';
+                    printf("read name %s\n", buff);
+                    name = buff;
+                }
+                rval = read(connfd, buff, MAXSIZE);
+                if (rval > 0) {
+                    buff[rval] = '\0';
+                    printf("read psw %s\n", buff);
+                    psw = buff;
+                }
+                if (asv.userLogIn(name, psw)) {
+                    char rtn[] = "true";
+                    if (send(connfd, rtn, strlen(rtn), 0) == -1)
+                        perror("send error!");
+                } else {
+                    char rtn[] = "false";
+                    if (send(connfd, rtn, strlen(rtn), 0) == -1)
+                        perror("send error!");
+                }
+            }
+            if (op == "r") {
+                std::string name, psw, email, phone;
+                int rval = read(connfd, buff, MAXSIZE);
+                if (rval > 0) {
+                    buff[rval] = '\0';
+                    printf("read name %s\n", buff);
+                    name = buff;
+                }
+                rval = read(connfd, buff, MAXSIZE);
+                if (rval > 0) {
+                    buff[rval] = '\0';
+                    printf("read psw %s\n", buff);
+                    psw = buff;
+                }
+                rval = read(connfd, buff, MAXSIZE);
+                if (rval > 0) {
+                    buff[rval] = '\0';
+                    printf("read  email %s\n", buff);
+                    email = buff;
+                }
+                rval = read(connfd, buff, MAXSIZE);
+                if (rval > 0) {
+                    buff[rval] = '\0';
+                    printf("read phone %s\n", buff);
+                    phone = buff;
+                }
+                if (asv.userRegister(name, psw, email, phone)) {
+                    char rtn[] = "true";
+                    if (send(connfd, rtn, strlen(rtn), 0) == -1)
+                        perror("send error!");
+                } else {
+                    char rtn[] = "false";
+                    if (send(connfd, rtn, strlen(rtn), 0) == -1)
+                        perror("send error!");
+                }
+            }
+            /*if (op == "o") {
+                userLogOut();
+            }
+            if (op == "dc") {
+                deleteUser();
+            }
+            if (op == "lu") {
+                listAllUsers();
+            }
+            if (op == "cm") {
+                createMeeting();
+            }
+            if (op == "la") {
+                listAllMeetings();
+            }
+            if (op == "las") {
+                listAllSponsorMeetings();
+            }
+            if (op == "lap") {
+                listAllParticipateMeetings();
+            }
+            if (op == "qm") {
+                queryMeetingByTitle();
+            }
+            if (op == "qt") {
+                queryMeetingByTimeInterval();
+            }
+            if (op == "dm") {
+                deleteMeetingByTitle();
+            }
+            if (op == "da") {
+                deleteAllMeetings();
+            }
+            return 1;*/
+        } else {
+            close(connfd);
+            close(listenfd);
+            return -2;
+        }
+    }
+    close(connfd);
+    close(listenfd);
+    return 0;
+}
